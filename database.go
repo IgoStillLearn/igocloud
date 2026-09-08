@@ -40,7 +40,7 @@ type File struct {
 
 func ConnectDB() {
 
-	database, err := gorm.Open(sqlite.Open("igocloud.db"), &gorm.Config{})
+	database, err := gorm.Open(sqlite.Open("data/igocloud.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatal("❌ Gagal konek ke Database SQLite:", err)
 	}

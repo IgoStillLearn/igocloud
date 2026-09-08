@@ -5,11 +5,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -27,6 +29,7 @@ import (
 )
 
 var jwtSecret []byte
+var uploadStatus sync.Map
 
 func Protected() fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -563,79 +566,116 @@ func main() {
 			})
 		})
 
-		apiGroup.Post("/upload", func(c *fiber.Ctx) error {
-			fileHeader, err := c.FormFile("file")
+		apiGroup.Post("/upload/chunk", func(c *fiber.Ctx) error {
+			uploadID := c.FormValue("upload_id")
+			filename := c.FormValue("filename")
+			chunkIndex, _ := strconv.Atoi(c.FormValue("chunk_index"))
+			totalChunks, _ := strconv.Atoi(c.FormValue("total_chunks"))
+			folderIDStr := c.FormValue("folder_id")
+
+			fileHeader, err := c.FormFile("chunk")
 			if err != nil {
-				return c.Status(400).JSON(fiber.Map{"error": "File tidak ditemukan."})
+				return c.Status(400).JSON(fiber.Map{"error": "Potongan file hilang"})
 			}
 
-			fileStream, err := fileHeader.Open()
-			if err != nil {
-				return c.Status(500).JSON(fiber.Map{"error": "Gagal membaca file dari browser"})
-			}
-			defer fileStream.Close()
+			tempDir := "./data/temp_uploads"
+			os.MkdirAll(tempDir, os.ModePerm)
+			tempFilePath := filepath.Join(tempDir, fmt.Sprintf("%s_%s", uploadID, filename))
 
-			uploadCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
-			defer cancel()
-
-			uploadResult, err := up.Upload(uploadCtx, uploader.NewUpload(fileHeader.Filename, fileStream, fileHeader.Size))
+			f, err := os.OpenFile(tempFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
-				log.Printf("❌ Gagal upload stream: %v\n", err)
-				return c.Status(500).JSON(fiber.Map{"error": "Gagal upload stream ke Telegram Server"})
+				return c.Status(500).JSON(fiber.Map{"error": "Gagal menjahit file di server"})
 			}
 
-			msgUpdate, err := sender.Self().Media(uploadCtx, message.UploadedDocument(uploadResult).Filename(fileHeader.Filename))
-			if err != nil {
-				log.Printf("❌ Gagal kirim media ke Saved Messages: %v\n", err)
-				return c.Status(500).JSON(fiber.Map{"error": "Telegram menolak penyimpanan file"})
-			}
+			chunkFile, _ := fileHeader.Open()
+			io.Copy(f, chunkFile)
+			chunkFile.Close()
+			f.Close()
 
-			var tgMsgID int
-			switch u := msgUpdate.(type) {
-			case *tg.UpdateShortSentMessage:
-				tgMsgID = u.ID
-			case *tg.UpdateShortMessage:
-				tgMsgID = u.ID
-			case *tg.Updates:
-				for _, upd := range u.Updates {
-					switch msgUpd := upd.(type) {
-					case *tg.UpdateNewMessage:
-						if msg, ok := msgUpd.Message.(*tg.Message); ok {
-							tgMsgID = msg.ID
-						}
-					case *tg.UpdateMessageID:
-						tgMsgID = msgUpd.ID
+			if chunkIndex == totalChunks-1 {
+				uploadStatus.Store(uploadID, "processing")
+
+				go func(filePath string, fName string, fIdStr string, uID string) {
+					defer os.Remove(filePath)
+
+					fileStream, err := os.Open(filePath)
+					if err != nil {
+						uploadStatus.Store(uID, "error")
+						return
 					}
-				}
-			case *tg.UpdatesCombined:
-				for _, upd := range u.Updates {
-					switch msgUpd := upd.(type) {
-					case *tg.UpdateNewMessage:
-						if msg, ok := msgUpd.Message.(*tg.Message); ok {
-							tgMsgID = msg.ID
-						}
-					case *tg.UpdateMessageID:
-						tgMsgID = msgUpd.ID
+					defer fileStream.Close()
+
+					fileStat, _ := fileStream.Stat()
+					uploadCtx, cancel := context.WithTimeout(context.Background(), 2*time.Hour)
+					defer cancel()
+
+					uploadResult, err := up.Upload(uploadCtx, uploader.NewUpload(fName, fileStream, fileStat.Size()))
+					if err != nil {
+						uploadStatus.Store(uID, "error")
+						return
 					}
-				}
-			}
 
-			if tgMsgID == 0 {
-				log.Printf("⚠️ WARNING: Telegram merespon aneh. Tipe response: %T\n", msgUpdate)
-				return c.Status(500).JSON(fiber.Map{"error": "Gagal mendapatkan referensi ID dari Telegram"})
-			}
+					msgUpdate, err := sender.Self().Media(uploadCtx, message.UploadedDocument(uploadResult).Filename(fName))
+					if err != nil {
+						uploadStatus.Store(uID, "error")
+						return
+					}
 
-			log.Printf("📌 [DEBUG] File '%s' tersimpan dengan Telegram Message ID: %d\n", fileHeader.Filename, tgMsgID)
+					var tgMsgID int
+					switch u := msgUpdate.(type) {
+					case *tg.UpdateShortSentMessage:
+						tgMsgID = u.ID
+					case *tg.UpdateShortMessage:
+						tgMsgID = u.ID
+					case *tg.Updates:
+						for _, upd := range u.Updates {
+							switch msgUpd := upd.(type) {
+							case *tg.UpdateNewMessage:
+								if msg, ok := msgUpd.Message.(*tg.Message); ok {
+									tgMsgID = msg.ID
+								}
+							}
+						}
+					}
 
-			newFile := File{
-				Name:          fileHeader.Filename,
-				Size:          fileHeader.Size,
-				Type:          getFileType(fileHeader.Filename),
-				TelegramMsgID: tgMsgID,
+					if tgMsgID != 0 {
+						var fID *uint
+						if fIdStr != "" && fIdStr != "null" {
+							parsed, _ := strconv.Atoi(fIdStr)
+							u := uint(parsed)
+							fID = &u
+						}
+						newFile := File{
+							Name:          fName,
+							Size:          fileStat.Size(),
+							Type:          getFileType(fName),
+							TelegramMsgID: tgMsgID,
+							FolderID:      fID,
+						}
+						DB.Create(&newFile)
+						uploadStatus.Store(uID, "success")
+					} else {
+						uploadStatus.Store(uID, "error")
+					}
+				}(tempFilePath, filename, folderIDStr, uploadID)
 			}
-			DB.Create(&newFile)
 
 			return c.JSON(fiber.Map{"status": "success"})
+		})
+
+		apiGroup.Get("/upload/status/:id", func(c *fiber.Ctx) error {
+			id := c.Params("id")
+			val, ok := uploadStatus.Load(id)
+			if !ok {
+				return c.JSON(fiber.Map{"status": "processing"})
+			}
+
+			statusStr := val.(string)
+			if statusStr == "success" || statusStr == "error" {
+				uploadStatus.Delete(id)
+			}
+
+			return c.JSON(fiber.Map{"status": statusStr})
 		})
 
 		apiGroup.Get("/files", func(c *fiber.Ctx) error {

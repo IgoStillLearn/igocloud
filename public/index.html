@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IGO CLOUD - Dashboard</title>
+    <title>IGO CLOUD</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: '#3b82f6' } } } }
@@ -17,7 +18,7 @@
         .animate-slide-in { animation: slideInRight 0.3s ease-out forwards; }
     </style>
 </head>
-<body x-data="igocloud()" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop($event)" @resize.window="windowWidth = window.innerWidth" class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 font-sans flex h-screen overflow-hidden relative">
+<body x-data="igocloud()" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop($event)" @resize.window="windowWidth = window.innerWidth" class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 font-sans flex h-[100dvh] overflow-hidden relative">
 
     <div x-show="isDragging && currentTab === 'cloud'" x-transition.opacity class="absolute inset-0 z-[100] bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-sm m-4 rounded-3xl border-4 border-dashed border-primary flex flex-col items-center justify-center pointer-events-none">
         <div class="bg-white dark:bg-slate-800 p-6 rounded-full shadow-2xl animate-bounce mb-4 text-primary"><svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg></div>
@@ -96,7 +97,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-                <button onclick="toggleDarkMode()" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors hidden sm:block"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg></button>
+                <button onclick="toggleDarkMode()" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg></button>
                 <div class="relative">
                     <button @click="profileMenuOpen = !profileMenuOpen" @click.outside="profileMenuOpen = false" class="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center font-semibold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary transition-all">AD</button>
                     <div x-show="profileMenuOpen" x-transition class="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg py-2 z-50 origin-top-right">
@@ -114,7 +115,7 @@
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative">
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 sm:pb-8 lg:p-8 relative">
             <div class="flex gap-2.5 overflow-x-auto pb-4 mb-2 no-scrollbar w-full snap-x">
                 <button @click="currentFilter = 'all'" class="snap-start shrink-0 px-4 py-2 rounded-full text-sm font-medium shadow-sm transition-colors border" :class="currentFilter === 'all' ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'">All Files</button>
                 <button @click="currentFilter = 'photo'" class="snap-start shrink-0 px-4 py-2 rounded-full text-sm font-medium shadow-sm transition-colors border flex items-center gap-2" :class="currentFilter === 'photo' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:border-blue-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'"><svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> Photos</button>
@@ -153,7 +154,7 @@
                             <button @click="sortMenuOpen = !sortMenuOpen" @click.outside="sortMenuOpen = false" class="p-2.5 shrink-0 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition-colors flex items-center gap-1" title="Urutkan">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
                             </button>
-                            <div x-show="sortMenuOpen" x-transition class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg py-2 z-50 overflow-hidden">
+                            <div x-show="sortMenuOpen" x-transition class="absolute left-0 sm:right-0 sm:left-auto mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg py-2 z-50 overflow-hidden">
                                 <div class="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-800/50">Urutkan Berdasarkan</div>
                                 <button @click="sortBy = 'date_desc'; sortMenuOpen = false" class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="sortBy === 'date_desc' ? 'text-primary font-bold bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-700 dark:text-slate-300'">Terbaru</button>
                                 <button @click="sortBy = 'date_asc'; sortMenuOpen = false" class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="sortBy === 'date_asc' ? 'text-primary font-bold bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-700 dark:text-slate-300'">Terlama</button>
@@ -170,7 +171,7 @@
                                 <svg x-show="viewMode === 'list' || viewMode === 'detailed'" style="display: none;" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                                 <svg x-show="viewMode === 'compact'" style="display: none;" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
                             </button>
-                            <div x-show="viewMenuOpen" x-transition class="absolute right-0 mt-2 w-40 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg py-2 z-50">
+                            <div x-show="viewMenuOpen" x-transition class="absolute left-0 sm:right-0 sm:left-auto mt-2 w-40 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg py-2 z-50">
                                 <button @click="viewMode = 'grid'; viewMenuOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="viewMode === 'grid' ? 'text-primary font-bold' : 'text-slate-700 dark:text-slate-300'">Grid View</button>
                                 <button @click="viewMode = 'list'; viewMenuOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="viewMode === 'list' ? 'text-primary font-bold' : 'text-slate-700 dark:text-slate-300'">List View</button>
                             </div>
@@ -401,6 +402,7 @@
                     </div>
                 </template>
             </div>
+            <div class="h-32 w-full shrink-0 block md:hidden"></div>
         </main>
     </div>
 
@@ -1155,37 +1157,68 @@
                 handleDrop(e) { this.isDragging = false; if (e.dataTransfer.files.length > 0) Array.from(e.dataTransfer.files).forEach(file => this.simulateUpload(file)); },
                 handleManualUpload(e) { if (e.target.files.length > 0) Array.from(e.target.files).forEach(file => this.simulateUpload(file)); },
 
-                simulateUpload(file) {
-                    const id = Date.now().toString() + Math.random().toString();
+                async simulateUpload(file) {
+                    if (file.size > 2 * 1024 * 1024 * 1024) {
+                        this.triggerToast('Batas maksimal Telegram adalah 2GB per file!', 'error');
+                        return;
+                    }
+                    
+                    const id = Date.now().toString() + Math.random().toString().replace('.', '');
                     this.uploads.push({ id: id, name: file.name, progress: 0 });
-                    this.triggerToast('Menyiapkan ' + file.name + '...', 'info');
+                    this.triggerToast('Memulai upload: ' + file.name, 'info');
 
-                    try {
-                        const formData = new FormData(); formData.append('file', file);
-                        const xhr = new XMLHttpRequest(); xhr.open('POST', '/api/upload', true); xhr.withCredentials = true; 
-                        xhr.upload.onprogress = (e) => {
-                            if (e.lengthComputable) { const index = this.uploads.findIndex(u => u.id === id); if (index !== -1) this.uploads[index].progress = Math.round((e.loaded / e.total) * 100); }
-                        };
-                        xhr.onload = () => {
-                            const index = this.uploads.findIndex(u => u.id === id); if (index !== -1) this.uploads[index].progress = 100;
-                            setTimeout(() => {
-                                this.uploads = this.uploads.filter(u => u.id !== id);
-                                if (xhr.status === 200) {
-                                    this.triggerToast('Berhasil upload!', 'success');
-                                    if(this.currentFolderId !== null) {
-                                        fetch('/api/files', {credentials: 'include'}).then(r => r.json()).then(res => {
-                                            if(res.data && res.data.length > 0) {
-                                                const newestFile = res.data[0];
-                                                fetch('/api/files/move', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({file_ids: [newestFile.ID], folder_id: this.currentFolderId}), credentials: 'include' }).then(() => this.loadData(true));
-                                            }
-                                        });
-                                    } else { this.loadData(true); }
-                                } else { this.triggerToast('Gagal upload', 'error'); }
-                            }, 800);
-                        };
-                        xhr.onerror = () => { this.uploads = this.uploads.filter(u => u.id !== id); this.triggerToast('Koneksi terputus!', 'error'); };
-                        xhr.send(formData);
-                    } catch (err) { }
+                    const chunkSize = 5 * 1024 * 1024;
+                    const totalChunks = Math.ceil(file.size / chunkSize);
+
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * chunkSize;
+                        const end = Math.min(start + chunkSize, file.size);
+                        const chunk = file.slice(start, end);
+
+                        const formData = new FormData();
+                        formData.append('chunk', chunk);
+                        formData.append('filename', file.name);
+                        formData.append('upload_id', id);
+                        formData.append('chunk_index', i);
+                        formData.append('total_chunks', totalChunks);
+                        if (this.currentFolderId !== null) formData.append('folder_id', this.currentFolderId);
+
+                        try {
+                            const res = await fetch('/api/upload/chunk', { method: 'POST', body: formData, credentials: 'include' });
+                            if (!res.ok) throw new Error('Gagal mengirim potongan file');
+                            
+                            const index = this.uploads.findIndex(u => u.id === id);
+                            if (index !== -1) this.uploads[index].progress = Math.round(((i + 1) / totalChunks) * 100);
+
+                            if (i === totalChunks - 1) {
+                                const tracker = this.uploads.find(u => u.id === id);
+                                if (tracker) tracker.name = "Memproses ke Telegram: " + file.name;
+                                
+                                const checkInterval = setInterval(async () => {
+                                    try {
+                                        const statusRes = await fetch('/api/upload/status/' + id, {credentials: 'include'});
+                                        const statusData = await statusRes.json();
+                                        
+                                        if (statusData.status === 'success') {
+                                            clearInterval(checkInterval);
+                                            this.uploads = this.uploads.filter(u => u.id !== id);
+                                            this.triggerToast('✅ ' + file.name + ' berhasil diamankan ke Telegram!', 'success');
+                                            this.loadData(true);
+                                        } else if (statusData.status === 'error') {
+                                            clearInterval(checkInterval);
+                                            this.uploads = this.uploads.filter(u => u.id !== id);
+                                            this.triggerToast('❌ Gagal meneruskan ' + file.name + ' ke Telegram.', 'error');
+                                        }
+                                    } catch (e) {
+                                    }
+                                }, 3000); 
+                            }
+                        } catch (err) {
+                            this.uploads = this.uploads.filter(u => u.id !== id);
+                            this.triggerToast('Koneksi terputus di tengah jalan!', 'error');
+                            break;
+                        }
+                    }
                 },
 
                 async doLogout() {

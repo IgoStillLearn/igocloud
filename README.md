@@ -19,7 +19,8 @@ git clone [https://github.com/IgoStillLearn/igocloud.git](https://github.com/Igo
 cd igocloud
 ```
 2. sesuaikan .env
-   // Konfigurasi Telegram API
+
+   // Konfigurasi Telegram API didapat dari https://my.telegram.org
    TG_API_ID=angka_api_id
    TG_API_HASH=string_api_hash
    
@@ -44,6 +45,8 @@ cd igocloud
    docker compose up -d --build
    ```
 5. akses dashboard : http://localhost:3000
+
+
 
 
 
