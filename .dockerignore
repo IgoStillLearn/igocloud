@@ -1,0 +1,16 @@
+# Ignore Environment Variables
+.env
+.env.example
+
+# Ignore Git files
+.git/
+.gitignore
+
+# Ignore Local Database & Telegram Session
+data/
+igocloud.db
+session.json
+
+# Ignore Documentation
+README.md
+LICENSE

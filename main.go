@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -19,6 +20,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gotd/td/session"
 	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/telegram/auth"
 	"github.com/gotd/td/telegram/downloader"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/uploader"
@@ -109,10 +111,18 @@ func main() {
 	})
 
 	err := client.Run(ctx, func(ctx context.Context) error {
-		status, err := client.Auth().Status(ctx)
-		if err != nil || !status.Authorized {
-			log.Fatal("❌ Akses Ditolak: Telegram sesi tidak valid.")
+		// Gunakan part dibawah ini ya guys untuk fase deployment, apalagi kalo menggunakan VPS, karena part dibawah ini mengunci session login tele kita jadi lebih aman.
+		// status, err := client.Auth().Status(ctx)
+		// if err != nil || !status.Authorized {
+		// 	log.Fatal("❌ Akses Ditolak: Telegram sesi tidak valid.")
+		// }
+
+		//hapus part idbawah ini kalo mengunakan part di atas
+		flow := auth.NewFlow(TerminalAuth{}, auth.SendCodeOptions{})
+		if err := client.Auth().IfNecessary(ctx, flow); err != nil {
+			return err
 		}
+		// sampai disini
 		log.Println("✅ [SECURED] Berhasil masuk ke Telegram Cloud!")
 
 		api := client.API()
@@ -851,4 +861,32 @@ func main() {
 	if err != nil {
 		log.Fatal("❌ Mesin Mati:", err)
 	}
+}
+
+type TerminalAuth struct{}
+
+func (TerminalAuth) Phone(_ context.Context) (string, error) {
+	fmt.Print("Masukkan Nomor HP (contoh: 62812xxx): ")
+	code, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+	return strings.TrimSpace(code), nil
+}
+
+func (TerminalAuth) Password(_ context.Context) (string, error) {
+	fmt.Print("Masukkan Password 2FA (kosongkan jika tidak ada lalu Enter): ")
+	code, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+	return strings.TrimSpace(code), nil
+}
+
+func (TerminalAuth) AcceptTermsOfService(_ context.Context, tos tg.HelpTermsOfService) error {
+	return nil
+}
+
+func (TerminalAuth) SignUp(_ context.Context) (auth.UserInfo, error) {
+	return auth.UserInfo{}, errors.New("signup not supported")
+}
+
+func (TerminalAuth) Code(_ context.Context, _ *tg.AuthSentCode) (string, error) {
+	fmt.Print("Masukkan Kode OTP dari Telegram: ")
+	code, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+	return strings.TrimSpace(code), nil
 }
