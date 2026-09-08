@@ -569,7 +569,10 @@ func main() {
 				return c.Status(400).JSON(fiber.Map{"error": "File tidak ditemukan."})
 			}
 
-			fileStream, _ := fileHeader.Open()
+			fileStream, err := fileHeader.Open()
+			if err != nil {
+				return c.Status(500).JSON(fiber.Map{"error": "Gagal membaca file dari browser"})
+			}
 			defer fileStream.Close()
 
 			uploadCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
@@ -577,31 +580,49 @@ func main() {
 
 			uploadResult, err := up.Upload(uploadCtx, uploader.NewUpload(fileHeader.Filename, fileStream, fileHeader.Size))
 			if err != nil {
+				log.Printf("❌ Gagal upload stream: %v\n", err)
 				return c.Status(500).JSON(fiber.Map{"error": "Gagal upload stream ke Telegram Server"})
 			}
 
 			msgUpdate, err := sender.Self().Media(uploadCtx, message.UploadedDocument(uploadResult).Filename(fileHeader.Filename))
+			if err != nil {
+				log.Printf("❌ Gagal kirim media ke Saved Messages: %v\n", err)
+				return c.Status(500).JSON(fiber.Map{"error": "Telegram menolak penyimpanan file"})
+			}
 
 			var tgMsgID int
 			switch u := msgUpdate.(type) {
 			case *tg.UpdateShortSentMessage:
 				tgMsgID = u.ID
+			case *tg.UpdateShortMessage:
+				tgMsgID = u.ID
 			case *tg.Updates:
 				for _, upd := range u.Updates {
-					if msgUpd, ok := upd.(*tg.UpdateNewMessage); ok {
+					switch msgUpd := upd.(type) {
+					case *tg.UpdateNewMessage:
 						if msg, ok := msgUpd.Message.(*tg.Message); ok {
 							tgMsgID = msg.ID
 						}
+					case *tg.UpdateMessageID:
+						tgMsgID = msgUpd.ID
 					}
 				}
 			case *tg.UpdatesCombined:
 				for _, upd := range u.Updates {
-					if msgUpd, ok := upd.(*tg.UpdateNewMessage); ok {
+					switch msgUpd := upd.(type) {
+					case *tg.UpdateNewMessage:
 						if msg, ok := msgUpd.Message.(*tg.Message); ok {
 							tgMsgID = msg.ID
 						}
+					case *tg.UpdateMessageID:
+						tgMsgID = msgUpd.ID
 					}
 				}
+			}
+
+			if tgMsgID == 0 {
+				log.Printf("⚠️ WARNING: Telegram merespon aneh. Tipe response: %T\n", msgUpdate)
+				return c.Status(500).JSON(fiber.Map{"error": "Gagal mendapatkan referensi ID dari Telegram"})
 			}
 
 			log.Printf("📌 [DEBUG] File '%s' tersimpan dengan Telegram Message ID: %d\n", fileHeader.Filename, tgMsgID)
