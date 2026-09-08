@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download File - IGO CLOUD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: '#3b82f6' } } } }</script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 font-sans flex items-center justify-center min-h-screen relative p-4" x-data="sharePage()">
+    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0 flex justify-center items-center">
+        <div class="w-[500px] h-[500px] bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-3xl w-full max-w-md p-8 relative z-10 text-center" x-show="!isLoading" style="display: none;" x-transition.opacity>
+        <div class="flex justify-center mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-slate-800 dark:bg-slate-900 shadow-lg shadow-slate-800/20 border border-slate-700/50 p-2 flex items-center justify-center">
+                <img src="/assets/logo.png" alt="Logo" class="w-full h-full object-contain" onerror="this.style.display='none'">
+            </div>
+        </div>
+
+        <template x-if="fileFound">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2 line-clamp-2" x-text="fileData.name"></h2>
+                <div class="flex items-center justify-center gap-2 text-slate-500 font-medium text-sm mb-8">
+                    <span x-text="fileData.displaySize"></span> &bull; <span class="uppercase" x-text="fileData.type"></span>
+                </div>
+                
+                <a :href="'/api/public/download/' + hash" class="w-full bg-primary hover:bg-blue-600 text-white font-bold text-lg py-4 px-6 rounded-2xl transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Download File
+                </a>
+            </div>
+        </template>
+
+        <template x-if="!fileFound">
+            <div>
+                <div class="w-20 h-20 bg-red-50 dark:bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Tautan Kadaluarsa</h2>
+                <p class="text-slate-500 text-sm mb-8">File tidak ditemukan atau pemilik file telah mencabut akses publik ke tautan ini.</p>
+            </div>
+        </template>
+
+        <p class="mt-8 text-xs text-slate-400">Created by <b>IGO CLOUD</b></p>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('sharePage', () => ({
+                isLoading: true, fileFound: false, fileData: null,
+                hash: window.location.pathname.split('/').pop(),
+                
+                async init() {
+                    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); }
+                    try {
+                        const res = await fetch('/api/public/info/' + this.hash);
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            this.fileData = data.data;
+                            this.fileData.displaySize = (this.fileData.size / 1024 / 1024).toFixed(2) + ' MB';
+                            this.fileFound = true;
+                        }
+                    } catch (e) { this.fileFound = false; }
+                    this.isLoading = false;
+                }
+            }));
+        });
+    </script>
+</body>
+</html>

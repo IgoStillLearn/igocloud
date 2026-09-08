@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  igocloud:
+    build: .
+    container_name: igocloud_prod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Jakarta

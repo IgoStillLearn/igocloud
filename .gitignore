@@ -1,0 +1,8 @@
+.env
+session.json
+data/
+*.db
+*.sqlite
+*.sqlite3
+igocloud
+igocloud.exe

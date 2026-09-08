@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manajemen Folder - IGO CLOUD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: '#3b82f6' } } } }
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style> 
+        body { transition: background-color 0.3s, color 0.3s; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .animate-slide-in { animation: slideInRight 0.3s ease-out forwards; }
+    </style>
+</head>
+<body x-data="folderManager()" @resize.window="windowWidth = window.innerWidth" class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 font-sans flex h-screen overflow-hidden relative">
+
+    <div class="fixed top-20 right-4 sm:right-6 z-[60] flex flex-col gap-2 pointer-events-none w-full max-w-xs">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div class="animate-slide-in bg-white dark:bg-slate-800 border-l-4 shadow-lg rounded-r-xl p-4 flex items-center gap-3 pointer-events-auto" :class="toast.type === 'success' ? 'border-green-500' : (toast.type === 'error' ? 'border-red-500' : 'border-primary')">
+                <p class="text-sm font-medium text-slate-700 dark:text-slate-200" x-text="toast.msg"></p>
+            </div>
+        </template>
+    </div>
+
+    <!-- SIDEBAR UTUH -->
+    <aside class="bg-white dark:bg-slate-800 w-64 border-r border-slate-200 dark:border-slate-700 flex flex-col absolute md:relative z-40 h-full transition-all duration-300 ease-in-out shrink-0" :class="sidebarOpen ? 'translate-x-0 ml-0' : '-translate-x-full md:-ml-64'">
+        <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-700 shrink-0">
+            <div class="w-14 h-14 shrink-0 mr-3 relative rounded-xl overflow-hidden bg-slate-800 dark:bg-slate-900 shadow-md shadow-slate-800/30 border border-slate-700/50 p-1.5 flex items-center justify-center">
+                <img src="assets/logo.png" alt="Logo" class="w-full h-full object-contain z-10 relative" onerror="this.style.display='none'">
+            </div>
+            <span class="font-bold text-lg tracking-tight whitespace-nowrap">CLOUD</span>
+        </div>
+        
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto no-scrollbar">
+            <a href="#" @click.prevent="goToTab('cloud')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg><span class="truncate">My Cloud</span>
+            </a>
+            <a href="#" @click.prevent="goToTab('favorites')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg><span class="truncate">Favorites</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors bg-blue-50 text-primary dark:bg-blue-500/10">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg><span class="truncate">Folders</span>
+            </a>
+            <a href="#" @click.prevent="goToTab('shared')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg><span class="truncate">Tautan Publik</span>
+            </a>
+            <hr class="border-slate-200 dark:border-slate-700 my-4">
+            <a href="#" @click.prevent="goToTab('trash')" class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg><span class="truncate">Trash</span>
+            </a>
+
+            <!-- STORAGE ANALYTICS DI FOLDER -->
+            <div class="px-2 mt-6">
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Storage Analytics</h4>
+                <div class="relative w-32 h-32 mx-auto mb-4">
+                    <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+                        <path class="text-slate-100 dark:text-slate-700" stroke-width="4" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        <path class="text-blue-500" :stroke-dasharray="stats.photoPct + ', 100'" stroke-width="4" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        <path class="text-purple-500" :stroke-dasharray="stats.videoPct + ', 100'" :stroke-dashoffset="stats.videoOffset" stroke-width="4" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        <path class="text-green-500" :stroke-dasharray="stats.appPct + ', 100'" :stroke-dashoffset="stats.appOffset" stroke-width="4" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        <path class="text-yellow-500" :stroke-dasharray="stats.docPct + ', 100'" :stroke-dashoffset="stats.docOffset" stroke-width="4" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-lg font-bold text-slate-800 dark:text-white" x-text="stats.totalGB"></span><span class="text-xs text-slate-500">Total Upload</span>
+                    </div>
+                </div>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between items-center"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-blue-500"></div><span class="text-slate-600 dark:text-slate-300">Photos</span></div><span class="font-medium" x-text="stats.photoPct + '%'"></span></div>
+                    <div class="flex justify-between items-center"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-purple-500"></div><span class="text-slate-600 dark:text-slate-300">Videos</span></div><span class="font-medium" x-text="stats.videoPct + '%'"></span></div>
+                    <div class="flex justify-between items-center"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-green-500"></div><span class="text-slate-600 dark:text-slate-300">APPS</span></div><span class="font-medium" x-text="stats.appPct + '%'"></span></div>
+                    <div class="flex justify-between items-center"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-yellow-500"></div><span class="text-slate-600 dark:text-slate-300">Docs</span></div><span class="font-medium" x-text="stats.docPct + '%'"></span></div>
+                </div>
+            </div>
+        </nav>
+    </aside>
+
+    <div x-show="sidebarOpen && windowWidth < 768" @click="sidebarOpen = false" x-transition.opacity class="fixed inset-0 bg-slate-900/50 z-30 md:hidden backdrop-blur-sm"></div>
+
+    <div class="flex-1 flex flex-col h-full relative min-w-0 transition-all duration-300 ease-in-out">
+        <!-- HEADER UTUH -->
+        <header class="h-16 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 sm:px-6 z-20 gap-2 sm:gap-4 shrink-0">
+            <div class="flex items-center flex-1 gap-2 sm:gap-4 min-w-0">
+                <button @click="sidebarOpen = !sidebarOpen" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg shrink-0 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                <div class="w-full max-w-md relative group flex-1">
+                    <svg class="w-5 h-5 absolute left-3 top-2.5 text-slate-400 group-focus-within:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" x-model="searchQuery" placeholder="Cari folder..." class="w-full bg-slate-100 dark:bg-slate-700/50 text-sm rounded-full pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:text-white transition-all">
+                </div>
+            </div>
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                <button onclick="toggleDarkMode()" class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors hidden sm:block">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+                <div class="relative">
+                    <button @click="profileMenuOpen = !profileMenuOpen" @click.outside="profileMenuOpen = false" class="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center font-semibold text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-primary transition-all">AD</button>
+                    <div x-show="profileMenuOpen" x-transition class="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg py-2 z-50 origin-top-right">
+                        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700"><p class="text-sm font-medium text-slate-900 dark:text-white truncate" x-text="user.name"></p><p class="text-xs text-slate-500 dark:text-slate-400 truncate" x-text="user.email"></p></div>
+                        <button @click="doLogout()" class="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 mt-1">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative">
+            
+            <!-- HORIZONTAL QUICK MENU (Redirects ke index.html) -->
+            <div class="flex gap-2.5 overflow-x-auto pb-4 mb-2 no-scrollbar w-full snap-x">
+                <button onclick="window.location.href='index.html'" class="snap-start shrink-0 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-sm font-medium transition-colors shadow-sm">All Files</button>
+                <button onclick="window.location.href='index.html'" class="snap-start shrink-0 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-sm font-medium transition-colors flex items-center gap-2"><svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> Photos</button>
+                <button onclick="window.location.href='index.html'" class="snap-start shrink-0 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-sm font-medium transition-colors flex items-center gap-2"><svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> Videos</button>
+                <button onclick="window.location.href='index.html'" class="snap-start shrink-0 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-sm font-medium transition-colors flex items-center gap-2"><svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Documents</button>
+                <button onclick="window.location.href='index.html'" class="snap-start shrink-0 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full text-sm font-medium transition-colors flex items-center gap-2"><svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg> APPS</button>
+            </div>
+
+            <!-- SMART ACTION BAR: Normal vs Bulk -->
+            <div class="mb-6 h-12 relative z-20">
+                <!-- Normal Bar -->
+                <div x-show="selectedFolders.length === 0" x-transition.opacity class="absolute inset-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 overflow-hidden text-ellipsis whitespace-nowrap">
+                        <button @click="toggleSelectAll()" x-show="displayFolders().length > 0" class="mr-3 flex items-center justify-center w-5 h-5 rounded border border-slate-300 dark:border-slate-600 text-slate-300 hover:border-primary hover:text-primary transition-colors focus:outline-none" title="Pilih Semua">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        </button>
+                        <span class="text-slate-800 dark:text-white text-lg font-bold">Manajemen Folder</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                        <input type="text" x-model="newFolderName" placeholder="Nama folder baru..." class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 dark:text-white transition-all w-40 sm:w-48">
+                        <button @click="createFolder()" class="bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors shadow-sm hidden sm:block whitespace-nowrap">Buat Folder</button>
+                        
+                        <!-- SORT DROPDOWN -->
+                        <div class="relative">
+                            <button @click="sortMenuOpen = !sortMenuOpen" @click.outside="sortMenuOpen = false" class="p-2.5 shrink-0 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition-colors flex items-center gap-1" title="Urutkan">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
+                            </button>
+                            <div x-show="sortMenuOpen" x-transition class="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg py-2 z-50 overflow-hidden">
+                                <div class="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-800/50">Urutkan Berdasarkan</div>
+                                <button @click="sortBy = 'name_asc'; sortMenuOpen = false" class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" :class="sortBy === 'name_asc' ? 'text-primary font-bold bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-700 dark:text-slate-300'">Nama (A - Z)</button>
+                                <button @click="sortBy = 'name_desc'; sortMenuOpen = false" class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" :class="sortBy === 'name_desc' ? 'text-primary font-bold bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-700 dark:text-slate-300'">Nama (Z - A)</button>
+                                <button @click="sortBy = 'date_desc'; sortMenuOpen = false" class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" :class="sortBy === 'date_desc' ? 'text-primary font-bold bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-700 dark:text-slate-300'">Terbaru Dibuat</button>
+                                <button @click="sortBy = 'date_asc'; sortMenuOpen = false" class="w-full text-left px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" :class="sortBy === 'date_asc' ? 'text-primary font-bold bg-blue-50/50 dark:bg-blue-900/10' : 'text-slate-700 dark:text-slate-300'">Terlama Dibuat</button>
+                            </div>
+                        </div>
+
+                        <!-- VIEW TOGGLE -->
+                        <div class="relative">
+                            <button @click="viewMenuOpen = !viewMenuOpen" @click.outside="viewMenuOpen = false" class="p-2.5 shrink-0 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 transition-colors flex items-center gap-1" title="Ubah Tampilan">
+                                <svg x-show="viewMode === 'grid'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                <svg x-show="viewMode === 'list' || viewMode === 'detailed'" style="display: none;" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                <svg x-show="viewMode === 'compact'" style="display: none;" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                            </button>
+                            <div x-show="viewMenuOpen" x-transition class="absolute right-0 mt-2 w-40 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg py-2 z-50">
+                                <button @click="viewMode = 'grid'; viewMenuOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="viewMode === 'grid' ? 'text-primary font-bold' : 'text-slate-700 dark:text-slate-300'">Grid View</button>
+                                <button @click="viewMode = 'list'; viewMenuOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="viewMode === 'list' ? 'text-primary font-bold' : 'text-slate-700 dark:text-slate-300'">List View</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Action Bar -->
+                <div x-show="selectedFolders.length > 0" x-transition.opacity style="display: none;" class="absolute inset-0 flex items-center justify-between bg-primary text-white px-4 sm:px-6 py-2.5 rounded-xl shadow-lg z-20">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" checked @click.prevent="toggleSelectAll()" class="w-5 h-5 rounded border-transparent text-blue-600 bg-white focus:ring-white cursor-pointer" title="Batal Pilih Semua">
+                        <span class="font-medium text-sm"><span x-text="selectedFolders.length"></span> folder terpilih</span>
+                    </div>
+                    <div class="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar">
+                        <button @click="bulkToggleFavorite()" class="text-sm font-medium hover:text-yellow-200 transition-colors flex items-center gap-1 whitespace-nowrap">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg> <span class="hidden sm:inline">Favorit</span>
+                        </button>
+                        <button @click="bulkDelete()" class="text-sm font-medium text-red-300 hover:text-red-100 transition-colors flex items-center gap-1 whitespace-nowrap">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> <span class="hidden sm:inline">Hapus</span>
+                        </button>
+                        <div class="w-px h-5 bg-blue-400 mx-1"></div>
+                        <button @click="selectedFolders = []" class="text-sm font-medium hover:text-blue-200">Batal</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EMPTY STATES & LOADING -->
+            <div x-show="displayFolders().length === 0 && !isLoading" class="flex flex-col items-center justify-center py-20 text-center">
+                <div class="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-300 dark:text-slate-600">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2" x-text="searchQuery ? 'Folder tidak ditemukan' : 'Belum ada folder'"></h3>
+            </div>
+
+            <div x-show="isLoading" class="flex justify-center items-center py-20">
+                <svg class="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            </div>
+
+            <!-- DYNAMIC FOLDER CONTAINER -->
+            <div x-show="displayFolders().length > 0 && !isLoading" 
+                 :class="viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4' : 'flex flex-col ' + (viewMode === 'compact' ? 'gap-1' : 'gap-3')">
+                
+                <template x-for="folder in displayFolders()" :key="folder.ID">
+                    <div @click="goToFolder(folder.ID)" class="bg-white dark:bg-slate-800 border hover:border-primary dark:hover:border-primary transition-colors group relative cursor-pointer"
+                         :class="{ 'border-primary ring-1 ring-primary bg-blue-50/50 dark:bg-blue-900/20': selectedFolders.includes(folder.ID), 'border-slate-200 dark:border-slate-700': !selectedFolders.includes(folder.ID), 'p-4 rounded-2xl flex flex-col gap-3': viewMode === 'grid', 'p-4 rounded-xl flex flex-row items-center gap-4': viewMode === 'list' || viewMode === 'detailed', 'p-2 rounded-lg flex flex-row items-center gap-3': viewMode === 'compact' }">
+                        
+                        <!-- PERBAIKAN CHECKBOX (Tetap terlihat jika dipilih) -->
+                        <div class="absolute top-3 left-3 z-20 transition-opacity duration-200" :class="selectedFolders.includes(folder.ID) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'">
+                            <input type="checkbox" :value="folder.ID" x-model="selectedFolders" @click.stop class="w-5 h-5 rounded border-slate-400 text-primary focus:ring-primary cursor-pointer shadow-sm">
+                        </div>
+
+                        <!-- BINTANG FAVORIT -->
+                        <div x-show="folder.IsFavorite" class="absolute top-3 left-10 z-10 text-yellow-400 drop-shadow-sm">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                        </div>
+                        
+                        <!-- 3-DOTS MENU -->
+                        <div class="absolute z-30" :class="viewMode === 'grid' ? 'top-3 right-3' : 'right-4 top-1/2 -translate-y-1/2'" @click.outside="if(activeDropdown === folder.ID) activeDropdown = null">
+                            <button @click.prevent.stop="activeDropdown = activeDropdown === folder.ID ? null : folder.ID" class="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-md bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
+                            </button>
+
+                            <div x-show="activeDropdown === folder.ID" x-transition class="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl py-1 z-50">
+                                <button @click.stop="toggleFolderFavorite(folder.ID)" class="w-full text-left px-4 py-2 text-sm flex items-center gap-2" :class="folder.IsFavorite ? 'text-yellow-600' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg> <span x-text="folder.IsFavorite ? 'Hapus Favorit' : 'Tambah Favorit'"></span>
+                                </button>
+                                <button @click.stop="deleteFolder(folder.ID)" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 border-t border-slate-100 dark:border-slate-700 mt-1 pt-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Hapus Folder
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ICON FOLDER -->
+                        <div class="flex items-center justify-center shrink-0" 
+                             :class="{ 'w-full h-32 rounded-xl bg-blue-50/50 dark:bg-slate-700/50': viewMode === 'grid', 'w-12 h-12 rounded-lg bg-blue-50 dark:bg-slate-700/50 text-primary': viewMode === 'list' || viewMode === 'detailed', 'w-8 h-8 rounded-md bg-blue-50 dark:bg-slate-700/50 text-primary': viewMode === 'compact'}">
+                            <svg :class="viewMode === 'grid' ? 'w-12 h-12 text-primary' : (viewMode === 'compact' ? 'w-5 h-5' : 'w-7 h-7')" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
+                        </div>
+
+                        <!-- INFO TEKS & TANGGAL -->
+                        <div class="flex-1 flex items-center justify-between min-w-0 pr-8" :class="viewMode === 'grid' ? 'flex-col items-start pr-0' : ''">
+                            <div class="truncate flex-1" :class="viewMode === 'grid' ? 'w-full' : ''">
+                                <h3 class="font-medium text-sm sm:text-base text-slate-800 dark:text-white truncate group-hover:text-primary transition-colors" x-text="folder.Name"></h3>
+                                <p x-show="viewMode !== 'detailed'" class="text-xs text-slate-500 mt-0.5">Folder</p>
+                            </div>
+                            <div x-show="viewMode === 'list' || viewMode === 'detailed'" class="hidden md:flex items-center gap-6 text-sm text-slate-500 w-1/2 justify-end">
+                                <span class="w-24 text-right truncate">Folder</span>
+                                <span class="w-32 text-right truncate text-xs" x-text="folder.formattedDate"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('folderManager', () => ({
+                windowWidth: window.innerWidth, sidebarOpen: window.innerWidth >= 768, 
+                profileMenuOpen: false, sortMenuOpen: false, viewMenuOpen: false,
+                viewMode: 'grid', sortBy: 'name_asc', searchQuery: '', activeDropdown: null,
+                isLoading: false, toasts: [], folders: [], selectedFolders: [],
+                user: JSON.parse(localStorage.getItem('igocloud_user')) || { name: 'Guest', email: '' },
+                stats: { totalGB: '0', photoPct: 0, videoPct: 0, appPct: 0, docPct: 0, videoOffset: 0, appOffset: 0, docOffset: 0 },
+                newFolderName: '',
+
+                async init() { 
+                    if (!this.user.email) { window.location.href = '/login.html'; return; }
+                    await this.fetchFolders(); 
+                    await this.fetchAnalyticsData();
+                },
+
+                goToFolder(id) {
+                    localStorage.setItem('igocloud_open_folder', id);
+                    window.location.href = 'index.html';
+                },
+
+                goToTab(tabName) {
+                    localStorage.setItem('igocloud_target_tab', tabName);
+                    window.location.href = 'index.html';
+                },
+
+                displayFolders() {
+                    let res = this.folders;
+                    
+                    if (this.searchQuery.trim() !== '') {
+                        const q = this.searchQuery.toLowerCase();
+                        res = res.filter(f => f.Name.toLowerCase().includes(q));
+                    } else {
+                        res = res.filter(f => (f.ParentID || null) === null);
+                    }
+
+                    res = res.sort((a, b) => {
+                        if (this.sortBy === 'date_desc') return new Date(b.rawDate) - new Date(a.rawDate);
+                        if (this.sortBy === 'date_asc') return new Date(a.rawDate) - new Date(b.rawDate);
+                        if (this.sortBy === 'name_asc') return a.Name.localeCompare(b.Name);
+                        if (this.sortBy === 'name_desc') return b.Name.localeCompare(a.Name);
+                        return 0;
+                    });
+                    return res;
+                },
+
+                toggleSelectAll() {
+                    const visible = this.displayFolders();
+                    if (visible.length === 0) return;
+                    if (this.selectedFolders.length === visible.length) { this.selectedFolders = []; } 
+                    else { this.selectedFolders = visible.map(f => f.ID); }
+                },
+
+                async fetchFolders() {
+                    this.isLoading = true;
+                    try {
+                        const res = await fetch('/api/folders', {credentials: 'include'});
+                        if (res.status === 401) { window.location.href = '/login.html'; return; }
+                        const result = await res.json();
+                        if (result.status === 'success') { 
+                            this.folders = result.data.map(f => {
+                                const d = new Date(f.CreatedAt);
+                                const pad = (n) => n.toString().padStart(2, '0');
+                                f.formattedDate = `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+                                f.rawDate = f.CreatedAt;
+                                return f;
+                            });
+                        }
+                    } catch (e) { this.triggerToast('Gagal memuat folder', 'error'); }
+                    this.isLoading = false;
+                },
+
+                async fetchAnalyticsData() {
+                    try {
+                        const res = await fetch('/api/files', {credentials: 'include'});
+                        const result = await res.json();
+                        if (result.status === 'success') {
+                            let t = 0, p = 0, v = 0, a = 0, d = 0;
+                            result.data.forEach(f => {
+                                t += f.Size;
+                                if(f.Type === 'photo') p += f.Size; else if(f.Type === 'video') v += f.Size; else if(f.Type === 'app') a += f.Size; else d += f.Size;
+                            });
+                            if (t > 0) {
+                                const toPct = (val) => Math.round((val / t) * 100);
+                                this.stats.totalGB = (t / 1024 / 1024 / 1024).toFixed(2); 
+                                this.stats.photoPct = toPct(p); this.stats.videoPct = toPct(v); this.stats.appPct = toPct(a); this.stats.docPct = toPct(d);
+                                this.stats.videoOffset = -this.stats.photoPct; this.stats.appOffset = -(this.stats.photoPct + this.stats.videoPct); this.stats.docOffset = -(this.stats.photoPct + this.stats.videoPct + this.stats.appPct);
+                            }
+                        }
+                    } catch(e) {}
+                },
+
+                async createFolder() {
+                    if (!this.newFolderName.trim()) return;
+                    try {
+                        const res = await fetch('/api/folders', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: this.newFolderName}), credentials: 'include' });
+                        const result = await res.json();
+                        if (result.status === 'success') { 
+                            const d = new Date(result.data.CreatedAt);
+                            const pad = (n) => n.toString().padStart(2, '0');
+                            result.data.formattedDate = `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+                            result.data.rawDate = result.data.CreatedAt;
+                            this.folders.push(result.data); 
+                            this.newFolderName = ''; 
+                            this.triggerToast('Folder dibuat', 'success'); 
+                        }
+                    } catch (e) { this.triggerToast('Gagal buat folder', 'error'); }
+                },
+
+                async deleteFolder(id) {
+                    this.activeDropdown = null;
+                    if(!confirm('Hapus folder ini? File di dalamnya akan dipindahkan ke Root.')) return;
+                    this.folders = this.folders.filter(f => f.ID !== id);
+                    try {
+                        await fetch(`/api/folders/${id}`, { method: 'DELETE', credentials: 'include' });
+                        this.triggerToast('Folder dihapus', 'success');
+                    } catch (e) { this.fetchFolders(); }
+                },
+
+                async bulkDelete() {
+                    if(!confirm(`Yakin MENGHAPUS ${this.selectedFolders.length} folder? File di dalamnya akan ke Root.`)) return;
+                    const idsToDelete = [...this.selectedFolders];
+                    this.folders = this.folders.filter(f => !idsToDelete.includes(f.ID));
+                    this.selectedFolders = [];
+                    for (const id of idsToDelete) { try { await fetch(`/api/folders/${id}`, { method: 'DELETE', credentials: 'include' }); } catch(e) {} }
+                    this.triggerToast(`${idsToDelete.length} folder dihapus`, 'success');
+                },
+
+                async toggleFolderFavorite(id) {
+                    this.activeDropdown = null;
+                    const f = this.folders.find(x => x.ID === id);
+                    if (f) f.IsFavorite = !f.IsFavorite;
+                    try { await fetch(`/api/folders/${id}/favorite`, { method: 'PUT', credentials: 'include' }); } 
+                    catch (e) { if (f) f.IsFavorite = !f.IsFavorite; }
+                },
+
+                async bulkToggleFavorite() {
+                    const idsToUpdate = [...this.selectedFolders];
+                    this.selectedFolders = [];
+                    for (const id of idsToUpdate) {
+                        const f = this.folders.find(x => x.ID === id);
+                        if (f) f.IsFavorite = !f.IsFavorite;
+                        try { await fetch(`/api/folders/${id}/favorite`, { method: 'PUT', credentials: 'include' }); } catch(e) {}
+                    }
+                    this.triggerToast(`${idsToUpdate.length} folder difavoritkan`, 'success');
+                },
+
+                async doLogout() {
+                    try {
+                        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+                        localStorage.removeItem('igocloud_user'); window.location.href = '/login.html';
+                    } catch (e) {}
+                },
+
+                triggerToast(msg, type = 'success') {
+                    const id = Date.now(); this.toasts.push({ id, msg, type });
+                    setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 3500);
+                }
+            }));
+        });
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); }
+        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'; }
+    </script>
+</body>
+</html>
