@@ -15,22 +15,25 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/joho/godotenv"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
-
 	"github.com/gotd/td/session"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/downloader"
 	"github.com/gotd/td/telegram/message"
 	"github.com/gotd/td/telegram/uploader"
 	"github.com/gotd/td/tg"
+	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 var jwtSecret []byte
 
 func Protected() fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		if strings.HasPrefix(c.Path(), "/api/public") {
+			return c.Next()
+		}
+
 		cookie := c.Cookies("igo_auth")
 		if cookie == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Akses Ditolak"})
@@ -128,7 +131,6 @@ func main() {
 							Revoke: true,
 						})
 					}
-					// 2. Hancurkan dari SQLite
 					DB.Unscoped().Delete(&f)
 					log.Printf("🗑️ [AUTO-DELETE] File '%s' dihancurkan permanen (Lewat 30 hari)\n", f.Name)
 				}
