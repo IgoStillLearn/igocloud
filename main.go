@@ -60,9 +60,7 @@ func getFileType(filename string) string {
 }
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("❌ Error: File .env rusak")
-	}
+	_ = godotenv.Load()
 
 	ConnectDB()
 
