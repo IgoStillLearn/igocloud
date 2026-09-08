@@ -24,7 +24,7 @@
         <h2 class="text-3xl font-bold text-primary drop-shadow-md">Lepaskan File di Sini</h2>
     </div>
 
-    <div class="fixed top-20 right-4 sm:right-6 z-[9999] flex flex-col gap-2 pointer-events-none w-full max-w-xs">
+    <div class="fixed top-20 inset-x-4 sm:inset-x-auto sm:right-6 z-[9999] flex flex-col gap-2 pointer-events-none w-auto sm:w-full sm:max-w-xs">
         <template x-for="toast in toasts" :key="toast.id">
             <div class="animate-slide-in bg-white dark:bg-slate-800 border-l-4 shadow-lg rounded-r-xl p-4 flex items-center gap-3 pointer-events-auto" :class="toast.type === 'success' ? 'border-green-500' : (toast.type === 'error' ? 'border-red-500' : 'border-primary')"><p class="text-sm font-medium text-slate-700 dark:text-slate-200" x-text="toast.msg"></p></div>
         </template>
@@ -526,6 +526,28 @@
         </div>
     </div>
 
+    <div x-show="softDeleteModalOpen" style="display: none;" class="fixed inset-0 z-[110] overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+            <div x-show="softDeleteModalOpen" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="softDeleteModalOpen = false"></div>
+            <div x-show="softDeleteModalOpen" x-transition.scale.origin.bottom class="relative inline-block w-full max-w-sm p-6 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-3xl">
+                <div class="flex justify-center mb-5">
+                    <div class="w-16 h-16 bg-yellow-50 dark:bg-yellow-500/10 text-yellow-500 rounded-full flex items-center justify-center shadow-inner">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </div>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white text-center mb-2">Pindahkan ke Trash?</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+                    <span x-show="softDeleteTargetType === 'single'">File ini akan dipindahkan ke Trash. Anda masih bisa mengembalikannya nanti.</span>
+                    <span x-show="softDeleteTargetType === 'bulk'">Yakin membuang <b class="text-slate-700 dark:text-slate-300" x-text="selectedFiles.length + selectedFolders.length"></b> item ke Trash ?</span>
+                </p>
+                <div class="flex gap-3">
+                    <button @click="softDeleteModalOpen = false" class="flex-1 px-4 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl transition-colors">Batal</button>
+                    <button @click="executeSoftDelete()" class="flex-1 px-4 py-3 text-sm font-bold text-white bg-yellow-500 hover:bg-yellow-600 rounded-xl shadow-lg shadow-yellow-500/30 transition-all active:scale-95">Ya, Pindahkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div x-show="deleteModalOpen" style="display: none;" class="fixed inset-0 z-[110] overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
             <div x-show="deleteModalOpen" x-transition.opacity class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" @click="deleteModalOpen = false"></div>
@@ -604,7 +626,7 @@
         </div>
     </div>
 
-    <div class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col gap-3 w-full max-w-sm pointer-events-none">
+    <div class="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 flex flex-col gap-3 w-auto sm:w-full sm:max-w-sm pointer-events-none">
         <template x-for="upload in uploads" :key="upload.id">
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-4 pointer-events-auto animate-slide-in">
                 <div class="flex justify-between items-center mb-2">
@@ -642,9 +664,13 @@
                 deleteModalOpen: false,
                 deleteTargetType: '',
                 deleteTargetId: null,
+                softDeleteModalOpen: false,
+                softDeleteTargetType: '',
+                softDeleteTargetId: null,
 
                 async init() {
                     if (!this.user.email) { window.location.href = '/login.html'; return; }
+                    this.$watch('currentTab', () => { if(window.innerWidth < 768) this.sidebarOpen = false; });
                     
                     const targetTab = localStorage.getItem('igocloud_target_tab');
                     if (targetTab) { 
@@ -960,11 +986,6 @@
                         this.loadData(true); this.fetchFolders();
                     } catch (e) { this.triggerToast('Gagal memindahkan', 'error'); }
                 },
-
-                async doSoftDelete(id) {
-                    this.activeDropdown = null; this.files = this.files.filter(f => String(f.id) !== String(id));
-                    try { await fetch(`/api/file/${id}`, { method: 'DELETE', credentials: 'include' }); this.triggerToast('Dibuang ke tempat sampah', 'success'); } catch(e) { }
-                },
                 
                 async doRestore(id) {
                     this.activeDropdown = null; this.files = this.files.filter(f => String(f.id) !== String(id));
@@ -1005,19 +1026,42 @@
                     }
                 },
 
-                async bulkSoftDelete() {
+                doSoftDelete(id) {
+                    this.activeDropdown = null; 
+                    this.softDeleteTargetType = 'single';
+                    this.softDeleteTargetId = id;
+                    this.softDeleteModalOpen = true;
+                },
+
+                bulkSoftDelete() {
                     const total = this.selectedFiles.length + this.selectedFolders.length;
-                    if(!confirm(`Yakin membuang ${total} item? Folder akan terhapus permanen.`)) return;
-                    
-                    const fileIds = [...this.selectedFiles]; const folderIds = [...this.selectedFolders];
-                    this.selectedFiles = []; this.selectedFolders = [];
-                    this.files = this.files.filter(f => !fileIds.includes(String(f.id)));
-                    this.folders = this.folders.filter(f => !folderIds.includes(String(f.ID)));
-                    
-                    for (const id of fileIds) { try { await fetch(`/api/file/${id}`, { method: 'DELETE', credentials: 'include' }); } catch(e) {} }
-                    for (const id of folderIds) { try { await fetch(`/api/folders/${id}`, { method: 'DELETE', credentials: 'include' }); } catch(e) {} }
-                    
-                    this.triggerToast(`${total} item dihapus`, 'success');
+                    if(total === 0) return;
+                    this.softDeleteTargetType = 'bulk';
+                    this.softDeleteModalOpen = true;
+                },
+
+                async executeSoftDelete() {
+                    this.softDeleteModalOpen = false;
+                    if (this.softDeleteTargetType === 'single') {
+                        const id = this.softDeleteTargetId;
+                        this.files = this.files.filter(f => String(f.id) !== String(id));
+                        try { 
+                            await fetch(`/api/file/${id}`, { method: 'DELETE', credentials: 'include' }); 
+                            this.triggerToast('Dibuang ke tempat sampah', 'success'); 
+                        } catch(e) { }
+                    } 
+                    else if (this.softDeleteTargetType === 'bulk') {
+                        const fileIds = [...this.selectedFiles]; const folderIds = [...this.selectedFolders];
+                        const total = fileIds.length + folderIds.length;
+                        this.selectedFiles = []; this.selectedFolders = [];
+                        this.files = this.files.filter(f => !fileIds.includes(String(f.id)));
+                        this.folders = this.folders.filter(f => !folderIds.includes(String(f.ID)));
+
+                        for (const id of fileIds) { try { await fetch(`/api/file/${id}`, { method: 'DELETE', credentials: 'include' }); } catch(e) {} }
+                        for (const id of folderIds) { try { await fetch(`/api/folders/${id}`, { method: 'DELETE', credentials: 'include' }); } catch(e) {} }
+
+                        this.triggerToast(`${total} item dihapus`, 'success');
+                    }
                 },
 
                 shareModalOpen: false,
