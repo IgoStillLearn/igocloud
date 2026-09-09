@@ -161,7 +161,32 @@ func main() {
 			AllowCredentials: true,
 		}))
 
-		app.Static("/", "./public")
+		app.Get("/", func(c *fiber.Ctx) error {
+			if c.Cookies("igo_auth") == "" {
+				return c.Redirect("/login", 302)
+			}
+			return c.SendFile("./public/index.html")
+		})
+
+		app.Get("/login", func(c *fiber.Ctx) error {
+			if c.Cookies("igo_auth") != "" {
+				return c.Redirect("/", 302)
+			}
+			return c.SendFile("./public/login.html")
+		})
+
+		app.Get("/folders", func(c *fiber.Ctx) error {
+			if c.Cookies("igo_auth") == "" {
+				return c.Redirect("/login", 302)
+			}
+			return c.SendFile("./public/folders.html")
+		})
+
+		app.Get("/share", func(c *fiber.Ctx) error {
+			return c.SendFile("./public/share.html")
+		})
+
+		app.Static("/assets", "./public/assets")
 
 		app.Post("/api/login", func(c *fiber.Ctx) error {
 			type LoginRequest struct {
@@ -852,6 +877,10 @@ func main() {
 				w.Flush()
 			})
 			return nil
+		})
+
+		app.Use(func(c *fiber.Ctx) error {
+			return c.Status(404).SendFile("./public/404.html")
 		})
 
 		log.Printf("🛡️ Engine IGO CLOUD Standby di %s\n", allowedOrigin)

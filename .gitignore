@@ -6,3 +6,4 @@ data/
 *.sqlite3
 igocloud
 igocloud.exe
+.dockerignore
