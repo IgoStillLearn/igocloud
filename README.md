@@ -1,73 +1,85 @@
-**IGO PRIVATE CLOUD**
+# ☁️ IGO PRIVATE CLOUD
 
-IGO CLOUD adalah sistem self hosted cloud storage yang memanfaatkan server Telegram (MTProto) sebagai media penyimpanan, dibangun menggunakan arsitektur Golang, SQLite, dan Alpine.js untuk UI dan performa yang ringan serta responsif.
+IGO Cloud is a lightweight, self-hosted cloud storage solution that ingeniously leverages Telegram's MTProto (Saved Messages) as its backend storage. Built with a modern stack featuring Golang, SQLite, and Alpine.js, it delivers a blazing-fast, responsive, and resource-friendly user experience.
 
-# Fitur utama
-1. Unlimited Storage : Menggunakan Telegram Saved Messages sebagai storage filenya
-2. Aman dan Privat : Autentikasi menggunakan JWT Cookie dengan konfigurasi kredensial via .env
-3. Public File Sharing : share file dengan link tanpa perlu login, link tersebut memiliki masa berlaku(24 jam expired)
-5. Docker Ready : untuk production sudah dikontainerisasi penuh untuk proses deployment
+##  Key Features
+- **🚀 Unlimited Storage:** Utilizes Telegram's Saved Messages to give you virtually boundless storage space.
+- **🔒 Secure & Private:** Secured by JWT Cookie authentication with easy and flexible credential configuration via `.env`.
+- **🔗 Public File Sharing:** Generate shareable links that don't require user login. For security, these links automatically expire after 24 hours.
+- **🐳 Docker Ready:** Fully containerized for a seamless and hassle-free production deployment.
 
-# Sistem requirement
-1. [Docker](https://www.docker.com/) & Docker Compose terinstal di server/lokal
-2. Akun Telegram aktif beserta API ID dan API Hash (buat dapetinnya disini https://my.telegram.org)
+## 🛠️ System Requirements
+1. **[Docker](https://www.docker.com/) & Docker Compose** installed on your server or local machine.
+2. An active **Telegram Account** along with its `API ID` and `API Hash`. (You can get yours at [my.telegram.org](https://my.telegram.org)).
+3. **Go** installed (for local initialization).
 
-# Panduan instalasi (Deployment)
-1. Clone Repositori
+## 🚀 Installation & Deployment Guide
+
+### 1. Clone the Repository
 ```bash
-git clone [https://github.com/IgoStillLearn/igocloud.git](https://github.com/IgoStillLearn/igocloud.git)
+git clone https://github.com/IgoStillLearn/igocloud.git
 cd igocloud
 ```
 
-2. buat file .env atau edit .env.example menjadi .env dan sesuaikan isinya
+### 2. Environment Setup
+Create a `.env` file or duplicate `.env.example` and fill in your configurations:
 
-   // Konfigurasi Telegram API didapat dari https://my.telegram.org
-   TG_API_ID=angka_api_id
-   TG_API_HASH=string_api_hash
-   
-   // Biarkan default 3000 untuk Port
-   PORT=3000
-   
-   // Input nomor telepon
-   TG_PHONE=nomor telegram yang digunakan untuk mendapatkan API ID dan Hash(gunakan +628 untuk kode region telepon Indonesia)
-   
-   // Create random secret key
-   JWT_SECRET=bikin_kunci_rahasia_acak_disini
-   
-   // Konfigurasi Admin (Hanya dipakai saat database masih kosong)
-   ADMIN_EMAIL=contohadmin@domain.com
-   ADMIN_PASSWORD=contohpassword
-   
-   // URL
-   APP_URL=http://localhost:3000 # Ganti dengan Domain/IP VPS saat production
+```env
+# Telegram API Credentials (from https://my.telegram.org)
+TG_API_ID=your_api_id_here
+TG_API_HASH=your_api_hash_here
 
-3. jalankan command berikut di terminal :
+# Port Configuration
+PORT=3000
+
+# Telegram Phone Number (Use international format, e.g., +628...)
+TG_PHONE=+628...
+
+# JWT Secret (Generate a strong random string here)
+JWT_SECRET=your_random_secret_key_here
+
+# Initial Admin Config (Used only when the database is empty)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=your_secure_password
+
+# App URL (Change to your VPS Domain/IP for production)
+APP_URL=http://localhost:3000
+```
+
+### 3. Local Initialization (Crucial Step)
+Run the application locally first to generate the session file:
 ```bash
 go run .
 ```
 
-4. masukan nomor telepon yang kalian gunakan di telegram pada terminal tersebut
+### 4. OTP Authentication
+- Enter the phone number associated with your Telegram account in the terminal.
+- Input the **OTP** sent to your Telegram app.
+- Once authenticated, the app will generate a `data/session.json` file to save your login session, preventing the need for repeated logins.
 
-5. masukan OTP yang kalian terima di telegram(ini akan generate folder data/session.json untuk save login session kalian, agar tidak perlu login ulang kedepannya)
+### 5. Access Dashboard
+You can now access your local dashboard at: `http://localhost:3000`
 
-6. akses dashboard : http://localhost:3000
+---
 
+## ⚠️ Important Deployment Notes (VPS & Docker Workflow)
 
+In `main.go`, you will find specific code blocks for the **Development Phase** and **Deployment Phase**. Please comment (`//`) or uncomment these sections according to your current phase.
 
-notes : di main.go itu ada opsi code untuk fase development dan fase deployment, silahkan enable dan disable "//" sesuai fase
-Jika kalian ingin mendeploy ke VPS menggunakan Docker, jangan melakukan login OTP pertama kali di dalam Docker.
-Jalankan aplikasi secara lokal terlebih dahulu (go run .) hingga berhasil login. Setelah file session.json terbuat di folder data/, ganti code loginnya di main.go ke code untuk deployment, baru build image docker dan push, baru pull image docker di VPS, dan edit file data/session.json atau kalau belum ada, buat terlebih dahulu coy :
-```bash
-mkdir -p data && touch data/session.json
-```
-lalu 
-```bash
-cd data
-```
+**Crucial Docker Rule:** 
+Do **NOT** perform your first OTP login inside a Docker container. Follow this exact workflow for VPS deployment:
 
-```bash
-nano session.json
-```
-dan paste session.json di VS code ke session.json yang berada di VPS ini.
+1. **Run Locally First:** Execute `go run .` locally until you successfully log in and `data/session.json` is generated.
+2. **Switch to Deployment Mode:** Update the code in `main.go` to activate the deployment phase configuration.
+3. **Build & Push:** Build your Docker image and push it to your registry.
+4. **Pull & Setup VPS:** Pull the Docker image on your VPS.
+5. **Transfer Session Data:** Manually copy your local `session.json` to the VPS. If the folder doesn't exist, create it:
+   ```bash
+   mkdir -p data && touch data/session.json
+   cd data
+   nano session.json
+   ```
+   *(Paste the contents of your local `session.json` from VS Code into the VPS `session.json` file and save).*
 
-Created by IgoStillLearn - 2026
+---
+*Created by IgoStillLearn - 2026*
