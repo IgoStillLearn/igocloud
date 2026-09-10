@@ -82,4 +82,4 @@ Do **NOT** perform your first OTP login inside a Docker container. Follow this e
    *(Paste the contents of your local `session.json` from VS Code into the VPS `session.json` file and save).*
 
 ---
-*Created by IgoStillLearn - 2026*
+*Created by Ade-IgoStillLearn - 2026*
