@@ -130,8 +130,23 @@ func main() {
 		sender := message.NewSender(api).WithUploader(up)
 		go func() {
 			for {
-				time.Sleep(24 * time.Hour)
-				log.Println("🧹 Menjalankan pembersihan Trash otomatis...")
+				time.Sleep(1 * time.Hour)
+
+				log.Println("🧹 Menjalankan pembersihan Trash & Zombie Files otomatis...")
+
+				tempDir := "./data/temp_uploads"
+				files, err := os.ReadDir(tempDir)
+				if err == nil {
+					for _, f := range files {
+						info, err := f.Info()
+						if err == nil {
+							if time.Since(info.ModTime()) > 2*time.Hour {
+								os.Remove(filepath.Join(tempDir, f.Name()))
+								log.Printf("🧹 [AUTO-CLEANUP] Zombie file '%s' dihapus dari SSD\n", f.Name())
+							}
+						}
+					}
+				}
 
 				thirtyDaysAgo := time.Now().Add(-30 * 24 * time.Hour)
 				var expiredFiles []File

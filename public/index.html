@@ -1157,8 +1157,21 @@
                     this.triggerToast(`${ids.length} file dipulihkan`, 'success'); this.loadData(true);
                 },
 
-                handleDrop(e) { this.isDragging = false; if (e.dataTransfer.files.length > 0) Array.from(e.dataTransfer.files).forEach(file => this.simulateUpload(file)); },
-                handleManualUpload(e) { if (e.target.files.length > 0) Array.from(e.target.files).forEach(file => this.simulateUpload(file)); },
+                async handleDrop(e) { 
+                    this.isDragging = false; 
+                    if (e.dataTransfer.files.length > 0) {
+                        for (const file of Array.from(e.dataTransfer.files)) {
+                            await this.simulateUpload(file);
+                        }
+                    }
+                },
+                async handleManualUpload(e) { 
+                    if (e.target.files.length > 0) {
+                        for (const file of Array.from(e.target.files)) {
+                            await this.simulateUpload(file);
+                        }
+                    }
+                },
 
                 async simulateUpload(file) {
                     if (file.size > 2 * 1024 * 1024 * 1024) {
@@ -1186,17 +1199,32 @@
                         formData.append('total_chunks', totalChunks);
                         if (this.currentFolderId !== null) formData.append('folder_id', this.currentFolderId);
 
-                        try {
-                            const res = await fetch('/api/upload/chunk', { method: 'POST', body: formData, credentials: 'include' });
-                            if (!res.ok) throw new Error('Gagal mengirim potongan file');
-                            
-                            const index = this.uploads.findIndex(u => u.id === id);
-                            if (index !== -1) this.uploads[index].progress = Math.round(((i + 1) / totalChunks) * 100);
+                        let chunkSuccess = false;
+                        let retries = 5;
 
-                            if (i === totalChunks - 1) {
-                                const tracker = this.uploads.find(u => u.id === id);
-                                if (tracker) tracker.name = "Memproses ke Telegram: " + file.name;
+                        while (!chunkSuccess && retries > 0) {
+                            try {
+                                const res = await fetch('/api/upload/chunk', { method: 'POST', body: formData, credentials: 'include' });
+                                if (!res.ok) throw new Error('Gagal');
                                 
+                                chunkSuccess = true;
+                                const index = this.uploads.findIndex(u => u.id === id);
+                                if (index !== -1) this.uploads[index].progress = Math.round(((i + 1) / totalChunks) * 100);
+                            } catch (err) {
+                                retries--;
+                                if (retries === 0) {
+                                    this.uploads = this.uploads.filter(u => u.id !== id);
+                                    this.triggerToast('Koneksi mati total saat upload!', 'error');
+                                    throw new Error('Upload dihentikan'); 
+                                }
+                                await new Promise(r => setTimeout(r, 2000));
+                            }
+                        }
+
+                        if (i === totalChunks - 1) {
+                            const tracker = this.uploads.find(u => u.id === id);
+                            if (tracker) tracker.name = "Memproses ke Telegram: " + file.name;
+                            await new Promise((resolve) => {
                                 const checkInterval = setInterval(async () => {
                                     try {
                                         const statusRes = await fetch('/api/upload/status/' + id, {credentials: 'include'});
@@ -1207,19 +1235,17 @@
                                             this.uploads = this.uploads.filter(u => u.id !== id);
                                             this.triggerToast('✅ ' + file.name + ' berhasil diamankan ke Telegram!', 'success');
                                             this.loadData(true);
+                                            resolve();
                                         } else if (statusData.status === 'error') {
                                             clearInterval(checkInterval);
                                             this.uploads = this.uploads.filter(u => u.id !== id);
                                             this.triggerToast('❌ Gagal meneruskan ' + file.name + ' ke Telegram.', 'error');
+                                            resolve();
                                         }
                                     } catch (e) {
                                     }
                                 }, 3000); 
-                            }
-                        } catch (err) {
-                            this.uploads = this.uploads.filter(u => u.id !== id);
-                            this.triggerToast('Koneksi terputus di tengah jalan!', 'error');
-                            break;
+                            });
                         }
                     }
                 },

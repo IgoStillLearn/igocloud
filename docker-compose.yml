@@ -9,6 +9,11 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.8"
+          memory: "1.5G"
     env_file:
       - .env
     environment:
